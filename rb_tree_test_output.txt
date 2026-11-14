@@ -1,0 +1,28 @@
+Тест #1 14.11.2026 Проверка работоспособности вставки и поиска
+
+Код:
+int main() {
+    RBTree tree;
+    cout << boolalpha;
+    cout << tree.Insert("mango", 10) << '\n'; // true
+    cout << tree.Insert("apple", 20) << '\n'; // true
+    cout << tree.Insert("pear", 30) << '\n';  // true
+    cout << tree.Insert("apple", 99) << '\n'; // false
+    uint64_t value = 0;
+    if (tree.Find("apple", value)){
+        cout << value << '\n'; // 20
+    }
+    if (tree.Find("pear", value)){
+        cout << value << '\n'; // 30
+    }
+    cout << tree.Find("banana", value) << '\n'; // false
+}
+
+Вывод:
+true
+true
+true
+false
+20
+30
+false

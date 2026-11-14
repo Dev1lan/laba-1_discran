@@ -1,0 +1,14 @@
+# Сборка
+/rb_tree
+/koch_derevo
+/a.out
+/build/
+*.o
+*.exe
+
+# Локальные настройки VS Code
+/.vscode/
+
+# Временные файлы словаря и профилирования
+/dict.bin
+/gmon.out
