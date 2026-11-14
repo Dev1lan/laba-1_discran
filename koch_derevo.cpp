@@ -1,8 +1,6 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include <memory>
-#include <utility>
 
 using namespace std;
 
@@ -15,17 +13,33 @@ class RBTree {
         string key;
         uint64_t value;
         Color color = Color::Red;
-        unique_ptr<Node> left;
-        unique_ptr<Node> right;
+        Node* left = nullptr;
+        Node* right = nullptr;
         Node* parent;
-
         Node(const string& key, uint64_t value, Node* parent)
             : key(key), value(value), parent(parent) {}
     };
-    unique_ptr<Node> root_;
+    Node* root_ = nullptr;
+
+    void Clear(Node* node){
+        if (node == nullptr){
+            return;
+        }
+        Clear(node->left);
+        Clear(node->right);
+        delete node;
+    }
+
 public:
+    RBTree() = default;
+    RBTree(const RBTree&) = delete;
+    RBTree& operator=(const RBTree&) = delete;
+    ~RBTree(){
+        Clear(root_);
+    }
+
     bool Insert(const string& key, uint64_t value){
-        Node* current = root_.get();
+        Node* current = root_;
         Node* parent = nullptr;
         while (current != nullptr){
             if (key == current->key){
@@ -33,40 +47,39 @@ public:
             }
             parent = current;
             if (key < current->key){
-                current = current->left.get();
+                current = current->left;
             } else{
-                current = current->right.get();
+                current = current->right;
             }
         }
-        auto node = make_unique<Node>(key, value, parent);
+        Node* node = new Node(key, value, parent);
         if (parent == nullptr){
+            root_ = node;
             node->color = Color::Black;
-            root_ = std::move(node);
         } else if (key < parent->key){
-            parent->left = std::move(node);
+            parent->left = node;
         } else{
-            parent->right = std::move(node);
+            parent->right = node;
         }
         return true;
     }
 
     bool Find(const string& key, uint64_t& value) const{
-        const Node* current = root_.get();
+        const Node* current = root_;
         while (current != nullptr){
             if (key == current->key){
                 value = current->value;
                 return true;
             }
             if (key < current->key){
-                current = current->left.get();
+                current = current->left;
             }
             else{
-                current = current->right.get();
+                current = current->right;
             }
         }
         return false;
     }
-
 };
 
 int main() {
