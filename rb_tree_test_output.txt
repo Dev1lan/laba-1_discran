@@ -26,3 +26,14 @@ false
 20
 30
 false
+
+Тест #2 16.11.2026 Проверка работоспособности балансировщика
+
+After two inserts
+Root: apple [B]
+  R: mango [R]
+
+After three inserts
+Root: mango [B]
+  L: apple [R]
+  R: pear [R]

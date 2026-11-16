@@ -29,7 +29,98 @@ class RBTree {
         Clear(node->right);
         delete node;
     }
+    
+    void RotateLeft(Node* node){
+        Node* right = node->right;
+        Node* parent = node->parent;
+        node->right = right->left;
+        if (node->right != nullptr){
+            node->right->parent = node;
+        }
+        right->parent = parent;
+        if (parent == nullptr){
+            root_ = right;
+        } else if (parent->left == node){
+            parent->left = right;
+        } else{
+            parent->right = right;
+        }
+        right->left = node;
+        node->parent = right;
+    }
 
+    void RotateRight(Node* node){
+        Node* left = node->left;
+        Node* parent = node->parent;
+        node->left = left->right;
+        if (node->left != nullptr){
+            node->left->parent = node;
+        }
+        left->parent = parent;
+        if (parent == nullptr){
+            root_ = left;
+        } else if (parent->left == node){
+            parent->left = left;
+        } else{
+            parent->right = left;
+        }
+        left->right = node;
+        node->parent = left;
+    }
+
+    void FixInsert(Node* node){
+        while (node->parent != nullptr && node->parent->color == Color::Red){
+            Node* parent = node->parent;
+            Node* grandparent = parent->parent;
+
+            if (parent == grandparent->left){
+                Node* uncle = grandparent->right;
+                if (uncle != nullptr && uncle->color == Color::Red){
+                    parent->color = Color::Black;
+                    uncle->color = Color::Black;
+                    grandparent->color = Color::Red;
+                    node = grandparent;
+                } else{
+                    if (node == parent->right){
+                        node = parent;
+                        RotateLeft(node);
+                        parent = node->parent;
+                    }
+                    parent->color = Color::Black;
+                    grandparent->color = Color::Red;
+                    RotateRight(grandparent);
+                }
+            } else{
+                Node* uncle = grandparent->left;
+                if (uncle != nullptr && uncle->color == Color::Red){
+                    parent->color = Color::Black;
+                    uncle->color = Color::Black;
+                    grandparent->color = Color::Red;
+                    node = grandparent;
+                } else{
+                    if (node == parent->left){
+                        node = parent;
+                        RotateRight(node);
+                        parent = node->parent;
+                    }
+                    parent->color = Color::Black;
+                    grandparent->color = Color::Red;
+                    RotateLeft(grandparent);
+                }
+            }
+        }
+        root_->color = Color::Black;
+    }
+
+    void PrintNode(const Node* node, int depth, const char* label) const{
+        if (node == nullptr){
+            return;
+        }
+        cout << string(depth * 2, ' ') << label << node->key
+            << (node->color == Color::Black ? " [B]" : " [R]") << '\n';
+        PrintNode(node->left, depth + 1, "L: ");
+        PrintNode(node->right, depth + 1, "R: ");
+    }
 public:
     RBTree() = default;
     RBTree(const RBTree&) = delete;
@@ -55,12 +146,12 @@ public:
         Node* node = new Node(key, value, parent);
         if (parent == nullptr){
             root_ = node;
-            node->color = Color::Black;
         } else if (key < parent->key){
             parent->left = node;
         } else{
             parent->right = node;
         }
+        FixInsert(node);
         return true;
     }
 
@@ -80,21 +171,19 @@ public:
         }
         return false;
     }
+
+    void PrintTree() const{
+        PrintNode(root_, 0, "Root: ");
+    }
 };
 
 int main() {
     RBTree tree;
-    cout << boolalpha;
-    cout << tree.Insert("mango", 10) << '\n'; // true
-    cout << tree.Insert("apple", 20) << '\n'; // true
-    cout << tree.Insert("pear", 30) << '\n';  // true
-    cout << tree.Insert("apple", 99) << '\n'; // false
-    uint64_t value = 0;
-    if (tree.Find("apple", value)){
-        cout << value << '\n'; // 20
-    }
-    if (tree.Find("pear", value)){
-        cout << value << '\n'; // 30
-    }
-    cout << tree.Find("banana", value) << '\n'; // false
+    tree.Insert("apple", 10);
+    tree.Insert("mango", 20);
+    cout << "After two inserts\n";
+    tree.PrintTree();
+    tree.Insert("pear", 30);
+    cout << "\nAfter three inserts\n";
+    tree.PrintTree();
 }
