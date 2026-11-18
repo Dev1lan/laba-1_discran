@@ -1,5 +1,4 @@
 Тест #1 14.11.2026 Проверка работоспособности вставки и поиска
-
 Код:
 int main() {
     RBTree tree;
@@ -28,7 +27,6 @@ false
 false
 
 Тест #2 16.11.2026 Проверка работоспособности балансировщика
-
 After two inserts
 Root: apple [B]
   R: mango [R]
@@ -37,3 +35,93 @@ After three inserts
 Root: mango [B]
   L: apple [R]
   R: pear [R]
+
+Тест #3 18.11.2026 Проверка удаления красного листа
+Операция:
+Erase("apple")
+Find("apple", value)
+Find("pear", value)
+Erase("apple") // повторно	
+Вывод:
+true
+false
+true
+false
+
+Тест #4 18.11.2026 Проверка удаления в 4 случаях
+Сценарий:
+1. Удаление красного листа. Вставляли `mango → 10`, `apple → 20`, `pear → 30`, затем удаляли `apple`. Проверяли, что `apple` больше не находится, `pear` сохранил значение `30`, а повторное удаление `apple` возвращает `false`.
+2. Удаление узла с одним ребёнком. Вставляли `mango → 10`, `apple → 20`, `pear → 30`, `banana → 40`, затем удаляли `apple`. Проверяли, что `apple` больше не находится, а `banana` сохранил значение `40`.
+3. Удаление узла с двумя детьми, когда следующий ключ находится в правом ребёнке. Вставляли `mango → 10`, `apple → 20`, `pear → 30`, затем удаляли `mango`. Проверяли, что `mango` больше не находится, а `pear` и `apple` сохранили значения `30` и `20`.
+4. Удаление узла с двумя детьми, когда следующий ключ находится глубже в правом поддереве. Вставляли `mango → 10`, `apple → 20`, `pear → 30`, `orange → 40`, затем удаляли `mango`. Проверяли, что `mango` больше не находится, а `orange`, `pear` и `apple` сохранили значения `40`, `30` и `20`.
+Вывод:
+1. Red leaf: OK
+2. One child: OK
+Root: mango [B]
+  L: banana [B]
+  R: pear [B]
+3. Two children, successor is the right child: OK
+Root: pear [B]
+  L: apple [R]
+4. Two children, successor is deeper: OK
+Root: orange [B]
+  L: apple [B]
+  R: pear [B]
+
+Тест #5 18.11.2026 Проверка удаления чёрного листа
+Вводные:
+Первые четыре сценария повторялись с теми же данными, что и в тесте № 4. Для пятого сценария:
+1. В пустое дерево вставляли mango → 10, apple → 20, pear → 30, banana → 40.
+2. Удаляли красный лист banana. После этого apple становился чёрным листом.
+3. Вызывали Erase("apple"). Метод вернул true.
+4. Вызывали PrintTree(). Корнем остался чёрный mango, а его правый ребёнок pear стал красным.
+Вывод:
+1. Red leaf: OK
+2. One child: OK
+Root: mango [B]
+  L: banana [B]
+  R: pear [B]
+3. Two children, successor is the right child: OK
+Root: pear [B]
+  L: apple [R]
+4. Two children, successor is deeper: OK
+Root: orange [B]
+  L: apple [B]
+  R: pear [B]
+5. true
+Root: mango [B]
+  R: pear [R]
+
+Тест #6 18.11.2026 Удаление чёрного листа с перекраской и поворотами
+Вводные:
+Красный лист. Вставить mango → 10, apple → 20, pear → 30. Удалить apple.
+Узел с одним ребёнком. Вставить mango → 10, apple → 20, pear → 30, banana → 40. Удалить apple.
+Узел с двумя детьми, следующий ключ — правый ребёнок. Вставить mango → 10, apple → 20, pear → 30. Удалить mango.
+Узел с двумя детьми, следующий ключ глубже в правом поддереве. Вставить mango → 10, apple → 20, pear → 30, orange → 40. Удалить mango.
+Чёрный лист, перекраска. Вставить mango → 10, apple → 20, pear → 30, banana → 40. Сначала удалить banana, затем apple.
+Чёрный лист, один поворот. Вставить mango → 10, apple → 20, pear → 30, plum → 40. Удалить apple. У соседнего узла pear красный дальний ребёнок plum.
+Чёрный лист, два поворота. Вставить mango → 10, apple → 20, pear → 30, orange → 40. Удалить apple. У соседнего узла pear красный ближний ребёнок orange.
+Вывод:
+1. Red leaf: OK
+2. One child: OK
+Root: mango [B]
+  L: banana [B]
+  R: pear [B]
+3. Two children, successor is the right child: OK
+Root: pear [B]
+  L: apple [R]
+4. Two children, successor is deeper: OK
+Root: orange [B]
+  L: apple [B]
+  R: pear [B]
+5. true
+Root: mango [B]
+  R: pear [R]
+6. Delete with one rotation
+Root: pear [B]
+  L: mango [B]
+  R: plum [B]
+7. Delete with two rotations
+Root: orange [B]
+  L: mango [B]
+  R: pear [B]
