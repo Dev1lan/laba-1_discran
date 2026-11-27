@@ -1,8 +1,11 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include <cassert>
 #include <cctype>
+#include <filesystem>
+#include <fstream>
+#include <new>
+#include <utility>
 
 using namespace std;
 
@@ -52,38 +55,22 @@ class RBTree {
 
     void RotateLeft(Node* node){
         Node* right = node->right;
-        Node* parent = node->parent;
         node->right = right->left;
         if (node->right != nullptr){
             node->right->parent = node;
         }
-        right->parent = parent;
-        if (parent == nullptr){
-            root_ = right;
-        } else if (parent->left == node){
-            parent->left = right;
-        } else{
-            parent->right = right;
-        }
+        ReplaceSub3(node, right);
         right->left = node;
         node->parent = right;
     }
 
     void RotateRight(Node* node){
         Node* left = node->left;
-        Node* parent = node->parent;
         node->left = left->right;
         if (node->left != nullptr){
             node->left->parent = node;
         }
-        left->parent = parent;
-        if (parent == nullptr){
-            root_ = left;
-        } else if (parent->left == node){
-            parent->left = left;
-        } else{
-            parent->right = left;
-        }
+        ReplaceSub3(node, left);
         left->right = node;
         node->parent = left;
     }
@@ -93,53 +80,36 @@ class RBTree {
             Node* parent = node->parent;
             Node* grandparent = parent->parent;
 
-            if (parent == grandparent->left){
-                Node* uncle = grandparent->right;
-                if (uncle != nullptr && uncle->color == Color::Red){
-                    parent->color = Color::Black;
-                    uncle->color = Color::Black;
-                    grandparent->color = Color::Red;
-                    node = grandparent;
+            bool isLeft = parent == grandparent->left;
+            Node* uncle = isLeft ? grandparent->right : grandparent->left;
+
+            if (ColorOf(uncle) == Color::Red){
+                parent->color = Color::Black;
+                uncle->color = Color::Black;
+                grandparent->color = Color::Red;
+                node = grandparent;
+                continue;
+            }
+
+            if (node == (isLeft ? parent->right : parent->left)){
+                node = parent;
+                if (isLeft){
+                    RotateLeft(node);
                 } else{
-                    if (node == parent->right){
-                        node = parent;
-                        RotateLeft(node);
-                        parent = node->parent;
-                    }
-                    parent->color = Color::Black;
-                    grandparent->color = Color::Red;
-                    RotateRight(grandparent);
+                    RotateRight(node);
                 }
+                parent = node->parent;
+            }
+
+            parent->color = Color::Black;
+            grandparent->color = Color::Red;
+            if (isLeft){
+                RotateRight(grandparent);
             } else{
-                Node* uncle = grandparent->left;
-                if (uncle != nullptr && uncle->color == Color::Red){
-                    parent->color = Color::Black;
-                    uncle->color = Color::Black;
-                    grandparent->color = Color::Red;
-                    node = grandparent;
-                } else{
-                    if (node == parent->left){
-                        node = parent;
-                        RotateRight(node);
-                        parent = node->parent;
-                    }
-                    parent->color = Color::Black;
-                    grandparent->color = Color::Red;
-                    RotateLeft(grandparent);
-                }
+                RotateLeft(grandparent);
             }
         }
         root_->color = Color::Black;
-    }
-
-    void PrintNode(const Node* node, int depth, const char* label) const{
-        if (node == nullptr){
-            return;
-        }
-        cout << string(depth * 2, ' ') << label << node->key
-            << (node->color == Color::Black ? " [B]" : " [R]") << '\n';
-        PrintNode(node->left, depth + 1, "L: ");
-        PrintNode(node->right, depth + 1, "R: ");
     }
 
     void ReplaceSub3(Node* node, Node* replacement){
@@ -206,6 +176,16 @@ class RBTree {
         node->color = Color::Black;
     }
 
+    bool SaveNodes(ofstream& file, const Node* node) const{
+        if (node == nullptr){
+            return true;
+        }
+        uint16_t length = static_cast<uint16_t>(node->key.size());
+        file.write(reinterpret_cast<const char*>(&length), sizeof(length));
+        file.write(node->key.data(), length);
+        file.write(reinterpret_cast<const char*>(&node->value), sizeof(node->value));
+        return file && SaveNodes(file, node->left) && SaveNodes(file, node->right);
+    }
 public:
     RBTree() = default;
     RBTree(const RBTree&) = delete;
@@ -270,6 +250,7 @@ public:
             node->value = removed->value;
         }
         if (removed->color == Color::Black && child == nullptr){
+            // Пока лист прикреплён, FixErase может найти его родителя.
             FixErase(removed);
         }
         ReplaceSub3(removed, child);
@@ -280,99 +261,136 @@ public:
         return true;
     }
 
-    void PrintTree() const{
-        PrintNode(root_, 0, "Root: ");
+    const char* Save(const string& path) const{
+        ofstream file(path, ios::binary | ios::trunc);
+        if (!file){
+            return "Cant open file for writing";
+        }
+        file.write("RBT1", 4);
+        if (!file || !SaveNodes(file, root_)){
+            return "Cant write file";
+        }
+        uint16_t end = 0;
+        file.write(reinterpret_cast<const char*>(&end), sizeof(end));
+        file.close();
+
+        return file ? nullptr : "Cant write file";
+    }
+
+    const char* Load(const string& path){
+        RBTree loaded;
+        ifstream file(path, ios::binary);
+        if (!file){
+            error_code error;
+            bool exists = filesystem::exists(path, error);
+            if (!exists && (!error || error == errc::no_such_file_or_directory)){
+                swap(root_, loaded.root_);
+                return nullptr;
+            }
+            return "Cant open file for reading";
+        }
+        if (file.peek() == char_traits<char>::eof()){
+            if (!file.eof() || file.bad()){
+                return "Cant read file";
+            }
+            swap(root_, loaded.root_);
+            return nullptr;
+        }
+        char header[4];
+        if (!file.read(header, sizeof(header)) || string(header, sizeof(header)) != "RBT1"){
+            return "Invalid file format";
+        }
+        while (true){
+            uint16_t length;
+            if (!file.read(reinterpret_cast<char*>(&length), sizeof(length))){
+                return "Invalid file format";
+            }
+            if (length == 0){
+                break;
+            }
+            if (length > 256){
+                return "Invalid key length";
+            }
+            string key(length, '\0');
+            uint64_t value;
+            if (!file.read(key.data(), length) ||
+                !file.read(reinterpret_cast<char*>(&value), sizeof(value))){
+                return "Invalid file format";
+            }
+            if (key.find_first_not_of("abcdefghijklmnopqrstuvwxyz") != string::npos ||
+                !loaded.Insert(key, value)){
+                return "Invalid dictionary entry";
+            }
+        }
+        if (file.peek() != char_traits<char>::eof() || !file.eof() || file.bad()){
+            return "Invalid file format";
+        }
+        swap(root_, loaded.root_);
+        return nullptr;
     }
 };
 
+void ToLower(string& key){
+    for (char& ch : key){
+        ch = static_cast<char>(tolower(static_cast<unsigned char>(ch)));
+    }
+}
+
 int main() {
-    {
-        RBTree tree;
-        tree.Insert("mango", 10);
-        tree.Insert("apple", 20);
-        tree.Insert("pear", 30);
-        uint64_t value = 0;
-        assert(tree.Erase("apple"));
-        assert(!tree.Find("apple", value));
-        assert(tree.Find("pear", value) && value == 30);
-        assert(!tree.Erase("apple"));
-        cout << "1. Red leaf: OK\n";
-    }
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    RBTree tree;
+    string command;
 
-    {
-        RBTree tree;
-        tree.Insert("mango", 10);
-        tree.Insert("apple", 20);
-        tree.Insert("pear", 30);
-        tree.Insert("banana", 40);
-        uint64_t value = 0;
-        assert(tree.Erase("apple"));
-        assert(!tree.Find("apple", value));
-        assert(tree.Find("banana", value) && value == 40);
-        cout << "\n2. One child: OK\n";
-        tree.PrintTree();
-    }
-
-    {
-        RBTree tree;
-        tree.Insert("mango", 10);
-        tree.Insert("apple", 20);
-        tree.Insert("pear", 30);
-        uint64_t value = 0;
-        assert(tree.Erase("mango"));
-        assert(!tree.Find("mango", value));
-        assert(tree.Find("pear", value) && value == 30);
-        assert(tree.Find("apple", value) && value == 20);
-        cout << "\n3. Two children, successor is the right child: OK\n";
-        tree.PrintTree();
-    }
-
-    {
-        RBTree tree;
-        tree.Insert("mango", 10);
-        tree.Insert("apple", 20);
-        tree.Insert("pear", 30);
-        tree.Insert("orange", 40);
-        uint64_t value = 0;
-        assert(tree.Erase("mango"));
-        assert(!tree.Find("mango", value));
-        assert(tree.Find("orange", value) && value == 40);
-        assert(tree.Find("pear", value) && value == 30);
-        assert(tree.Find("apple", value) && value == 20);
-        cout << "\n4. Two children, successor is deeper: OK\n";
-        tree.PrintTree();
-        {
-            cout << "\n5. ";
-            RBTree tree;
-            tree.Insert("mango", 10);
-            tree.Insert("apple", 20);
-            tree.Insert("pear", 30);
-            tree.Insert("banana", 40);
-            tree.Erase("banana");
-            cout << boolalpha << tree.Erase("apple") << '\n';
-            tree.PrintTree();
+    while (cin >> command){
+        try{
+            if (command == "+"){
+                string key;
+                uint64_t value;
+                if (!(cin >> key >> value)){
+                    break;
+                }
+                ToLower(key);
+                cout << (tree.Insert(key, value) ? "OK" : "Exist") << '\n';
+            } else if (command == "-"){
+                string key;
+                if (!(cin >> key)){
+                    break;
+                }
+                ToLower(key);
+                cout << (tree.Erase(key) ? "OK" : "NoSuchWord") << '\n';
+            } else if (command == "!"){
+                string action;
+                string path;
+                if (!(cin >> action) || !getline(cin, path)){
+                    break;
+                }
+                path.erase(0, path.find_first_not_of(" \t"));
+                if (!path.empty() && path.back() == '\r'){
+                    path.pop_back();
+                }
+                const char* error = "Unknown command";
+                if (action == "Save"){
+                    error = tree.Save(path);
+                } else if (action == "Load"){
+                    error = tree.Load(path);
+                }
+                if (error == nullptr){
+                    cout << "OK\n";
+                } else{
+                    cout << "ERROR: " << error << '\n';
+                }
+            } else{
+                ToLower(command);
+                uint64_t value;
+                if (tree.Find(command, value)){
+                    cout << "OK: " << value << '\n';
+                } else{
+                    cout << "NoSuchWord\n";
+                }
+            }
+        } catch (const bad_alloc&){
+            cout << "ERROR: Not enough memory\n";
         }
-        {
-        RBTree tree;
-        tree.Insert("mango", 10);
-        tree.Insert("apple", 20);
-        tree.Insert("pear", 30);
-        tree.Insert("plum", 40);
-        bool erased = tree.Erase("apple");
-        assert(erased);
-        cout << "\n6. Delete with one rotation\n";
-        tree.PrintTree();
-    }
-    {
-        RBTree tree;
-        tree.Insert("mango", 10);
-        tree.Insert("apple", 20);
-        tree.Insert("pear", 30);
-        tree.Insert("orange", 40);
-        bool erased = tree.Erase("apple");
-        assert(erased);
-        cout << "\n7. Delete with two rotations\n";
-        tree.PrintTree();
-    }
     }
 }

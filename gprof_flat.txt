@@ -1,0 +1,26 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ns/call  ns/call  name    
+ 23.81      0.05     0.05  5742561     8.71    12.89  frame_dummy
+ 19.05      0.09     0.04 10572698     3.78     3.78  bool std::operator==<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  9.52      0.11     0.02   250000    80.00   213.52  RBTree::Insert(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long)
+  9.52      0.13     0.02   125000   160.00   471.57  RBTree::Erase(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  9.52      0.15     0.02    57244   349.38   394.01  RBTree::FixErase(RBTree::Node*)
+  4.76      0.16     0.01  1250000     8.00     8.00  std::char_traits<char>::length(char const*)
+  4.76      0.17     0.01   625000    16.00   119.12  ToLower(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+  4.76      0.18     0.01   326205    30.66    30.66  RBTree::ReplaceSub3(RBTree::Node*, RBTree::Node*)
+  4.76      0.19     0.01   250000    40.00    69.61  RBTree::FixInsert(RBTree::Node*)
+  4.76      0.20     0.01   125001    80.00    80.00  RBTree::Node::~Node()
+  4.76      0.21     0.01                             _init
+  0.00      0.21     0.00 12322698     0.00     0.00  std::__is_constant_evaluated()
+  0.00      0.21     0.00 11072698     0.00     0.00  std::char_traits<char>::compare(char const*, char const*, unsigned long)
+  0.00      0.21     0.00 10447697     0.00     0.00  bool std::operator< <char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00      0.21     0.00  6250000     0.00     0.00  __gnu_cxx::__normal_iterator<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::base() const
+  0.00      0.21     0.00  3125000     0.00     0.00  bool __gnu_cxx::operator!=<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(__gnu_cxx::__normal_iterator<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&, __gnu_cxx::__normal_iterator<char*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&)
+  0.00      0.21     0.00  1250000     0.00     8.00  bool std::operator==<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*)
+  0.00      0.21     0.00   250000     0.00     0.00  RBTree::Node::Node(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long, RBTree::Node*)
+  0.00      0.21     0.00   103764     0.00    30.66  RBTree::RotateLeft(RBTree::Node*)
+  0.00      0.21     0.00    97441     0.00    30.66  RBTree::RotateRight(RBTree::Node*)
+  0.00      0.21     0.00        1     0.00     0.00  RBTree::~RBTree()

@@ -27,6 +27,8 @@ false
 false
 
 Тест #2 16.11.2026 Проверка работоспособности балансировщика
+Ввод: Insert(apple, 10), Insert(mango, 20), Insert(pear, 30). PrintTree после второй и третьей вставок.
+Вывод:
 After two inserts
 Root: apple [B]
   R: mango [R]
@@ -37,6 +39,7 @@ Root: mango [B]
   R: pear [R]
 
 Тест #3 18.11.2026 Проверка удаления красного листа
+Ввод: Insert(mango, 10), Insert(apple, 20), Insert(pear, 30).
 Операция:
 Erase("apple")
 Find("apple", value)
@@ -125,3 +128,168 @@ Root: pear [B]
 Root: orange [B]
   L: mango [B]
   R: pear [B]
+
+Тест #7 20.11.2026. Команды словаря, регистр и сохранение максимального uint64_t
+Среда: WSL Ubuntu, g++ -std=c++17 -O2 -Wall -Wextra.
+Ввод:
++ Apple 18446744073709551615
++ APPLE 99
+aPpLe
+! Save dict.bin
+- APPLE
+apple
+! Load dict.bin
+APPLE
+
+Фактический вывод:
+OK
+Exist
+OK: 18446744073709551615
+OK
+OK
+NoSuchWord
+OK
+OK: 18446744073709551615
+
+Тест #8 20.11.2026. Загрузка повреждённого, пустого и отсутствующего файла
+Подготовка: в отдельном временном каталоге broken.bin содержит строку broken, empty.bin пуст, missing.bin отсутствует. Ввод ниже показывает имена файлов относительно этого каталога, при запуске были переданы полные пути.
+Ввод:
++ pear 7
+! Load broken.bin
+pear
+! Load empty.bin
+pear
++ pear 8
+! Load missing.bin
+pear
+
+Фактический вывод:
+OK
+ERROR: Invalid file format
+OK: 7
+OK
+NoSuchWord
+OK
+OK
+NoSuchWord
+
+Тест #9 27.11.2026. Повторная проверка команд после упрощения кода
+После обновления koch_derevo.cpp повторно выполнен тест № 7. Вывод до и после правок совпал с ожидаемым.
+Сборка: GCC 16.2.0, C++17, -O2 -Wall -Wextra -Wpedantic.
+Яндекс Контест принял итоговое решение в части C.
+
+Тест #10 27.11.2026. Время и пиковая память итоговой версии
+Ввод: 250 000 вставок, 250 000 поисков, 125 000 удалений. Генерация описана в report.md.
+SHA-256 входа: c256fe48ee2e7104e7a1e27bc634832ac42005a076ae9214eccbfa7c707b97cb
+Получено 625 000 строк вывода.
+SHA-256 вывода с переводами строк Windows: 1121db4d17ef74c8ab7c7060d1b40e65e9547ba5b4b254a482c1b81c59de6610
+Пять измерений итоговой версии после прогрева. В каждой паре указаны секунды и МиБ пикового рабочего набора.
+(0.6145, 24.980), (0.5821, 24.984), (0.6129, 24.984), (0.5746, 24.984), (0.5952, 24.984)
+Медианы: 0.5952 с и 24.984 МиБ.
+
+Тест #11 27.11.2026. Время отдельных операций и освобождение узлов
+На том же входе диагностическая сборка с таймерами внутри методов дала следующий вывод. Единица времени — наносекунды.
+Erase 125000 132628800
+Find 250000 79936200
+Insert 250000 244241000
+
+Проверочная сборка со счётчиком живых Node завершилась с кодом 0 на нагрузке теста № 10 и на отдельном сценарии ниже. В обоих запусках при выходе счётчик был равен нулю.
+
+Ввод для проверки сохранения и загрузки (подготовка broken.bin, empty.bin и missing.bin как в тесте № 8):
++ apple 20
+! Save test.bin
++ pear 7
+! Load broken.bin
+pear
+! Load test.bin
+apple
+! Load empty.bin
+apple
++ pear 9
+! Load missing.bin
+pear
+
+Фактический вывод:
+OK
+OK
+OK
+ERROR: Invalid file format
+OK: 7
+OK
+OK: 20
+OK
+NoSuchWord
+OK
+OK
+NoSuchWord
+
+Тест #12 27.11.2026. Проверка памяти через Valgrind Memcheck
+Среда: WSL Ubuntu, Valgrind 3.22.0.
+Воспроизведение сборки: g++ -std=c++17 -O1 -g koch_derevo.cpp -o rbtree_check
+Запуск: valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --error-exitcode=1 --log-file=memcheck.log ./rbtree_check
+
+Ввод:
++ mango 10
++ apple 20
++ pear 30
++ orange 40
+! Save memcheck_test.bin
+- apple
+mango
+! Load memcheck_test.bin
+APPLE
+- mango
+
+Фактический вывод:
+OK
+OK
+OK
+OK
+OK
+OK
+OK: 10
+OK
+OK: 20
+OK
+
+Из журнала Memcheck:
+HEAP SUMMARY:
+    in use at exit: 122,880 bytes in 6 blocks
+  total heap usage: 21 allocs, 15 frees, 214,574 bytes allocated
+
+LEAK SUMMARY:
+   definitely lost: 0 bytes in 0 blocks
+   indirectly lost: 0 bytes in 0 blocks
+     possibly lost: 0 bytes in 0 blocks
+   still reachable: 122,880 bytes in 6 blocks
+        suppressed: 0 bytes in 0 blocks
+
+ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+Стек всех шести оставшихся доступных блоков ведёт к буферам libstdc++, созданным при std::ios_base::sync_with_stdio(false).
+
+Тест #13 27.11.2026. Профиль функций итоговой сборки в WSL
+Ввод: bench.txt, 625 000 команд из теста № 10.
+
+Команды:
+g++ -std=c++17 -O2 -g -pg -fno-inline koch_derevo.cpp -o rbtree_prof
+./rbtree_prof < bench.txt > /dev/null
+gprof -b -p ./rbtree_prof gmon.out > gprof_flat.txt
+
+Фрагмент фактического плоского профиля. Длинные сигнатуры сокращены.
+Each sample counts as 0.01 seconds.
+% time  self seconds     calls  name
+23.81   0.05   5742561  frame_dummy
+19.05   0.04  10572698  std::operator== (string, string)
+ 9.52   0.02    250000  RBTree::Insert
+ 9.52   0.02    125000  RBTree::Erase
+ 9.52   0.02     57244  RBTree::FixErase
+ 4.76   0.01   1250000  std::char_traits<char>::length
+ 4.76   0.01    625000  ToLower
+ 4.76   0.01    326205  RBTree::ReplaceSub3
+ 4.76   0.01    250000  RBTree::FixInsert
+ 4.76   0.01    125001  RBTree::Node::~Node
+ 4.76   0.01         —  _init
+ 0.00   0.00    103764  RBTree::RotateLeft
+ 0.00   0.00     97441  RBTree::RotateRight
+Суммарное время в плоском профиле: 0.21 с.
